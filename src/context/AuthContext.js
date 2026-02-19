@@ -11,9 +11,14 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
 
   const login = useCallback((user, token) => {
-    setUser(user);
+    // Ensure user has role property for admin panel access
+    const userWithRole = {
+      ...user,
+      role: user.role || 'admin',
+    };
+    setUser(userWithRole);
     setToken(token);
-    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('user', JSON.stringify(userWithRole));
     localStorage.setItem('token', token);
   }, []);
 
@@ -28,6 +33,7 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     isAuthenticated: !!token,
+    isAdmin: user?.role === 'admin',
     login,
     logout,
   };
