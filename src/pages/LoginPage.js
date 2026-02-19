@@ -15,15 +15,34 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Basic validation
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+    
     setLoading(true);
 
     try {
       const response = await authAPI.login(email, password);
       const { token, user } = response.data;
+      
+      if (!token || !user) {
+        setError('Invalid response from server');
+        return;
+      }
+      
       login(user, token);
       navigate('/admin/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      const errorMessage = 
+        err.response?.data?.error || 
+        err.response?.data?.message || 
+        err.message || 
+        'Login failed. Please try again.';
+      setError(errorMessage);
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -33,7 +52,19 @@ const LoginPage = () => {
     <div className="login-container">
       <div className="login-box">
         <h1>Admin Login</h1>
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            <span>{error}</span>
+            <button 
+              type="button" 
+              className="close-error" 
+              onClick={() => setError('')}
+              aria-label="Close error message"
+            >
+              ×
+            </button>
+          </div>
+        )}
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -43,6 +74,8 @@ const LoginPage = () => {
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@example.com"
+              disabled={loading}
               required
             />
           </div>
@@ -54,11 +87,13 @@ const LoginPage = () => {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              disabled={loading}
               required
             />
           </div>
 
-          <button type="submit" disabled={loading}>
+          <button type="submit" disabled={loading} className="login-btn">
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>

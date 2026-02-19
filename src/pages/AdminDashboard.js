@@ -18,24 +18,34 @@ const AdminDashboard = () => {
     pages: 0,
   });
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [error, setError] = useState('');
   const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const courses = ['Web Development', 'Data Science', 'UI/UX Design', 'Mobile App Dev', 'Cloud Computing'];
 
+  const showMessage = (text, type = 'success') => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+  };
+
   const fetchLeads = async (page = 1) => {
     setLoading(true);
+    setError('');
     try {
       const response = await leadAPI.getAll({
         page,
         limit: pagination.limit,
         ...filters,
       });
-      setLeads(response.data.data);
-      setPagination(response.data.pagination);
+      setLeads(response.data.data || []);
+      setPagination(response.data.pagination || { page: 1, limit: 10, total: 0, pages: 0 });
     } catch (error) {
-      setMessage('Failed to fetch leads');
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to fetch leads';
+      setError(errorMsg);
+      showMessage(errorMsg, 'error');
+      setLeads([]);
     } finally {
       setLoading(false);
     }
@@ -48,10 +58,11 @@ const AdminDashboard = () => {
   const handleStatusChange = async (leadId, newStatus) => {
     try {
       await leadAPI.updateStatus(leadId, newStatus);
-      setMessage('Lead status updated successfully');
-      fetchLeads(pagination.page);
+      showMessage('Lead status updated successfully', 'success');
+      fetchLeads(pagination.page || 1);
     } catch (error) {
-      setMessage('Failed to update status');
+      const errorMsg = error.response?.data?.error || 'Failed to update status';
+      showMessage(errorMsg, 'error');
     }
   };
 
@@ -59,10 +70,11 @@ const AdminDashboard = () => {
     if (window.confirm('Are you sure you want to delete this lead?')) {
       try {
         await leadAPI.delete(leadId);
-        setMessage('Lead deleted successfully');
-        fetchLeads(pagination.page);
+        showMessage('Lead deleted successfully', 'success');
+        fetchLeads(pagination.page || 1);
       } catch (error) {
-        setMessage('Failed to delete lead');
+        const errorMsg = error.response?.data?.error || 'Failed to delete lead';
+        showMessage(errorMsg, 'error');
       }
     }
   };
@@ -81,10 +93,10 @@ const AdminDashboard = () => {
         </button>
       </header>
 
-      {message && (
-        <div className="message-box">
-          {message}
-          <button onClick={() => setMessage('')}>×</button>
+      {message.text && (
+        <div className={`message-box ${message.type}`}>
+          {message.text}
+          <button onClick={() => setMessage({ type: '', text: '' })}>×</button>
         </div>
       )}
 
@@ -172,23 +184,25 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      <div className="pagination">
-        <button
-          disabled={pagination.page === 1}
-          onClick={() => fetchLeads(pagination.page - 1)}
-        >
-          Previous
-        </button>
-        <span>
-          Page {pagination.page} of {pagination.pages}
-        </span>
-        <button
-          disabled={pagination.page === pagination.pages}
-          onClick={() => fetchLeads(pagination.page + 1)}
-        >
-          Next
-        </button>
-      </div>
+      {pagination.pages > 1 && (
+        <div className="pagination">
+          <button
+            disabled={pagination.page <= 1}
+            onClick={() => fetchLeads(Math.max(1, pagination.page - 1))}
+          >
+            Previous
+          </button>
+          <span>
+            Page {pagination.page || 1} of {pagination.pages || 1}
+          </span>
+          <button
+            disabled={pagination.page >= pagination.pages}
+            onClick={() => fetchLeads(pagination.page + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 };
