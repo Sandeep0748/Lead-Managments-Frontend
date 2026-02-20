@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { leadAPI } from '../services/api';
 import '../styles/EnrollForm.css';
 
 const EnrollForm = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,8 +18,21 @@ const EnrollForm = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [loading, setLoading] = useState(false);
 
-  const courses = ['Web Development', 'Data Science', 'UI/UX Design', 'Mobile App Dev', 'Cloud Computing'];
-  const years = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'];
+  const courses = [
+    'Web Development',
+    'Data Science',
+    'UI/UX Design',
+    'Mobile App Dev',
+    'Cloud Computing'
+  ];
+
+  const years = [
+    '1st Year',
+    '2nd Year',
+    '3rd Year',
+    '4th Year',
+    'Graduated'
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,19 +46,19 @@ const EnrollForm = () => {
     const { name, email, phone, course, college, year } = formData;
 
     if (!name || !email || !phone || !course || !college || !year) {
-      setMessage({ type: 'error', text: 'All fields are required' });
+      setMessage({ type: 'error', text: 'All fields are required.' });
       return false;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setMessage({ type: 'error', text: 'Please enter a valid email' });
+      setMessage({ type: 'error', text: 'Please enter a valid email address.' });
       return false;
     }
 
     const phoneRegex = /^[0-9]{10,}$/;
     if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
-      setMessage({ type: 'error', text: 'Please enter a valid phone number (10+ digits)' });
+      setMessage({ type: 'error', text: 'Please enter a valid phone number (minimum 10 digits).' });
       return false;
     }
 
@@ -57,12 +73,27 @@ const EnrollForm = () => {
 
     setLoading(true);
 
+    // Prevent duplicate email (frontend level)
+    const existingEmail = localStorage.getItem(`lead_${formData.email}`);
+    if (existingEmail) {
+      setMessage({
+        type: 'error',
+        text: 'This email has already been submitted.'
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       await leadAPI.submit(formData);
+
+      localStorage.setItem(`lead_${formData.email}`, 'submitted');
+
       setMessage({
         type: 'success',
-        text: 'Successfully submitted! Our team will contact you soon.',
+        text: 'Successfully submitted! Our team will contact you soon.'
       });
+
       setFormData({
         name: '',
         email: '',
@@ -71,8 +102,12 @@ const EnrollForm = () => {
         college: '',
         year: '',
       });
+
     } catch (error) {
-      const errorMsg = error.response?.data?.error || 'Failed to submit form';
+      const errorMsg =
+        error.response?.data?.error ||
+        'Failed to submit form. Please try again later.';
+
       setMessage({ type: 'error', text: errorMsg });
     } finally {
       setLoading(false);
@@ -80,10 +115,31 @@ const EnrollForm = () => {
   };
 
   return (
-    <div className="enroll-form-container">
+    <div className="enroll-form-container" style={{ position: 'relative' }}>
+
+      {/* Admin Login Button */}
+      <button
+        onClick={() => navigate('/login')}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          padding: '8px 16px',
+          backgroundColor: '#111',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer'
+        }}
+      >
+        Admin Login
+      </button>
+
       <div className="form-wrapper">
         <h1 className="form-title">Enroll Now</h1>
-        <p className="form-subtitle">Join us and transform your career</p>
+        <p className="form-subtitle">
+          Join us and transform your career
+        </p>
 
         {message.text && (
           <div className={`message ${message.type}`}>
@@ -92,11 +148,11 @@ const EnrollForm = () => {
         )}
 
         <form onSubmit={handleSubmit} noValidate>
+
           <div className="form-group">
-            <label htmlFor="name">Full Name *</label>
+            <label>Full Name *</label>
             <input
               type="text"
-              id="name"
               name="name"
               value={formData.name}
               onChange={handleChange}
@@ -106,10 +162,9 @@ const EnrollForm = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email Address *</label>
+            <label>Email Address *</label>
             <input
               type="email"
-              id="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
@@ -119,10 +174,9 @@ const EnrollForm = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="phone">Phone Number *</label>
+            <label>Phone Number *</label>
             <input
               type="tel"
-              id="phone"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
@@ -132,9 +186,8 @@ const EnrollForm = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="course">Select Course *</label>
+            <label>Select Course *</label>
             <select
-              id="course"
               name="course"
               value={formData.course}
               onChange={handleChange}
@@ -150,10 +203,9 @@ const EnrollForm = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="college">College/University *</label>
+            <label>College/University *</label>
             <input
               type="text"
-              id="college"
               name="college"
               value={formData.college}
               onChange={handleChange}
@@ -163,9 +215,8 @@ const EnrollForm = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="year">Current Year *</label>
+            <label>Current Year *</label>
             <select
-              id="year"
               name="year"
               value={formData.year}
               onChange={handleChange}
@@ -190,7 +241,8 @@ const EnrollForm = () => {
         </form>
 
         <p className="form-note">
-          We respect your privacy. Your information will only be used to contact you about your enrollment.
+          We respect your privacy. Your information will only be used
+          to contact you about your enrollment.
         </p>
       </div>
     </div>
