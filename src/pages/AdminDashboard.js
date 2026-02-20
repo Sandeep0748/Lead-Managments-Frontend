@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { leadAPI } from '../services/api';
 import { AuthContext } from '../context/AuthContext';
@@ -19,7 +19,7 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [error, setError] = useState('');
+  const [, setError] = useState('');
   const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ const AdminDashboard = () => {
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
-  const fetchLeads = async (page = 1) => {
+  const fetchLeads = useCallback(async (page = 1) => {
     setLoading(true);
     setError('');
     try {
@@ -49,11 +49,11 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.limit]);
 
   useEffect(() => {
     fetchLeads(1);
-  }, [filters]);
+  }, [fetchLeads]);
 
   const handleStatusChange = async (leadId, newStatus) => {
     try {
