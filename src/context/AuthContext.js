@@ -1,25 +1,27 @@
-import React, { createContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
 
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    const storedToken = localStorage.getItem('token');
 
-  const login = useCallback((user, token) => {
-    // Ensure user has role property for admin panel access
-    const userWithRole = {
-      ...user,
-      role: user.role || 'admin',
-    };
-    setUser(userWithRole);
-    setToken(token);
-    localStorage.setItem('user', JSON.stringify(userWithRole));
-    localStorage.setItem('token', token);
+    if (storedUser && storedToken) {
+      setUser(JSON.parse(storedUser));
+      setToken(storedToken);
+    }
+  }, []);
+
+  const login = useCallback((userData, authToken) => {
+    setUser(userData);
+    setToken(authToken);
+
+    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('token', authToken);
   }, []);
 
   const logout = useCallback(() => {
@@ -29,14 +31,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   }, []);
 
-  const value = {
-    user,
-    token,
-    isAuthenticated: !!token,
-    isAdmin: user?.role === 'admin',
-    login,
-    logout,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated: !!token,
+        isAdmin: user?.role === 'admin',
+        login,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
